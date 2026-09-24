@@ -1,0 +1,60 @@
+name: Build portable Windows app
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Windows package and portable app
+        run: |
+          pnpm portable:win
+          pnpm portable:stage
+
+      - name: Zip portable app folder
+        shell: pwsh
+        run: Compress-Archive -Path release\* -DestinationPath Taskmaster-Windows-x64.zip
+
+      - name: Upload downloadable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taskmaster-Windows-x64
+          path: Taskmaster-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
