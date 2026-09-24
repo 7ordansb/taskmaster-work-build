@@ -45,7 +45,9 @@ jobs:
       - name: Build Windows package and portable app
         run: |
           pnpm portable:win
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm portable:stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Zip portable app folder
         shell: pwsh
